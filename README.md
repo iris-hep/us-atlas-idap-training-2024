@@ -8,4 +8,4 @@
 * [Columnar analysis and Awkward](https://indico.cern.ch/event/1376945/contributions/5787146/)
    - [GitHub](https://github.com/jpivarski-talks/2024-07-18-usatlas-seattle-tutorial)
 
-[Indico]: [https://indico.cern.ch/event/1376945/]
+[Indico]: https://indico.cern.ch/event/1376945/
