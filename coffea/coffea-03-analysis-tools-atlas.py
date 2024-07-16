@@ -242,8 +242,9 @@ cut_results, *_ = dask.compute(results)
 for cut, n_events in cut_results.items():
     print(f"Events passing all cuts, ignoring '{cut}': {n_events}")
 
+
 # %%
-from coffea import processor
+# from coffea import processor
 
 # %% [markdown]
 # ### Bringing it together
@@ -256,14 +257,13 @@ from coffea import processor
 #  
 
 # %%
-file_name = "https://raw.githubusercontent.com/CoffeaTeam/coffea/e06c4b84d0a641ab569ae7c16fecc39fe74c9743/tests/samples/nano_dy.root"
-devents = NanoEventsFactory.from_root(
-    {file_name: "Events"},
-    schemaclass=NanoAODSchema,
-    metadata={"dataset": "DYJets"},
-    delayed=True,
-).events()
-
+# file_name = "https://raw.githubusercontent.com/CoffeaTeam/coffea/e06c4b84d0a641ab569ae7c16fecc39fe74c9743/tests/samples/nano_dy.root"
+# devents = NanoEventsFactory.from_root(
+#     {file_name: "Events"},
+#     schemaclass=NanoAODSchema,
+#     metadata={"dataset": "DYJets"},
+#     delayed=True,
+# ).events()
 
 # %%
 def results_taskgraph(events):
@@ -278,7 +278,8 @@ def results_taskgraph(events):
     mass_hist = (
         Hist.new
         .StrCat(regions.keys(), name="region")
-        .StrCat(["nominal"] + list(weights.variations), name="systematic")
+        # .StrCat(["nominal"] + list(weights.variations), name="systematic")
+        .StrCat(["nominal"], name="systematic")
         .Reg(60, 60, 120, name="mass", label="$m_{ll}$ [GeV]")
         .Weight()
     )
@@ -298,28 +299,30 @@ def results_taskgraph(events):
             region=region,
             systematic="nominal",
             mass=mass,
-            weight=weights.weight()[good_event],
+            # weight=weights.weight()[good_event],
         )
-        for syst in weights.variations:
-            mass_hist.fill(
-                region=region,
-                systematic=syst,
-                mass=mass,
-                weight=weights.weight(syst)[good_event],
-            )
+        # for syst in weights.variations:
+        #     mass_hist.fill(
+        #         region=region,
+        #         systematic=syst,
+        #         mass=mass,
+        #         weight=weights.weight(syst)[good_event],
+        #     )
 
     out = {
         events.metadata["dataset"]: {
-            "sumw": ak.sum(events.genWeight, axis=0),
+            # "sumw": ak.sum(events.genWeight, axis=0),
+            "sumw": ak.sum(events.mcEventWeights, axis=0),
             "mass": mass_hist,
-            "weightStats": weights.weightStatistics,
+            # "weightStats": weights.weightStatistics,
         }
     }
     return out
 
 
 # %%
-out = results_taskgraph(devents)
+# out = results_taskgraph(devents)
+out = results_taskgraph(events)
 
 # %%
 out
