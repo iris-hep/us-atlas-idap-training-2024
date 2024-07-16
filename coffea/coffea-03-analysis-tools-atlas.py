@@ -150,8 +150,8 @@ weights.add(
     weightDown=events.LHEPdfWeight[:, 31],
 )
 
-eleSF = evaluator["scalefactors_Tight_Electron"](events.Electron.eta, events.Electron.pt)
-eleSFerror = evaluator["scalefactors_Tight_Electron_error"](events.Electron.eta, events.Electron.pt)
+eleSF = evaluator["scalefactors_Tight_Electron"](events.Electrons.eta, events.Electrons.pt)
+eleSFerror = evaluator["scalefactors_Tight_Electron_error"](events.Electrons.eta, events.Electrons.pt)
 weights.add(
     "eleSF",
     # the event weight is the product of the per-electron weights
@@ -185,11 +185,11 @@ weights.weight("eleSFUp")
 weights.variations
 
 # %% [markdown]
-# ## PackedSelection
+# ## `PackedSelection`
 #
-# This class can store several boolean arrays in a memory-efficient mannner and evaluate arbitrary combinations of boolean requirements in an CPU-efficient way. Supported inputs include 1D numpy or awkward arrays. This makes it a good tool to form analysis signal and control regions, and to implement cutflow or "N-1" plots.
+# This class can store several boolean arrays in a memory-efficient mannner and evaluate arbitrary combinations of boolean requirements in an CPU-efficient way. Supported inputs include 1D `numpy` or `awkward` arrays. This makes it a good tool to form analysis signal and control regions, and to implement cutflow or "N-1" plots.
 #
-# Below we create a packed selection with some typical selections for a Z+jets study, to be used later to form same-sign and opposite-sign $ee$ and $\mu\mu$ event categories/regions.
+# Below we create a packed selection with some typical selections for a $Z$+jets study, to be used later to form same-sign and opposite-sign $ee$ and $\mu\mu$ event categories/regions.
 
 # %%
 from coffea.analysis_tools import PackedSelection
@@ -284,12 +284,12 @@ def results_taskgraph(events):
     )
 
     for region, cuts in regions.items():
-        goodevent = selection.require(**cuts)
+        good_event = selection.require(**cuts)
 
         if region.startswith("ee"):
-            leptons = events.Electron[goodevent]
+            leptons = events.Electrons[good_event]
         elif region.startswith("mm"):
-            leptons = events.Muon[goodevent]
+            leptons = events.Muons[good_event]
         lep1 = leptons[:, 0]
         lep2 = leptons[:, 1]
         mass = (lep1 + lep2).mass
@@ -298,14 +298,14 @@ def results_taskgraph(events):
             region=region,
             systematic="nominal",
             mass=mass,
-            weight=weights.weight()[goodevent],
+            weight=weights.weight()[good_event],
         )
         for syst in weights.variations:
             mass_hist.fill(
                 region=region,
                 systematic=syst,
                 mass=mass,
-                weight=weights.weight(syst)[goodevent],
+                weight=weights.weight(syst)[good_event],
             )
 
     out = {

@@ -25,9 +25,9 @@ class MyZPeak(processor.ProcessorABC):
             ]
             cutflow["lumimask"] = ak.num(events, axis=0)
     
-        events["goodmuons"] = events.Muon[
-            (events.Muon.pt >= 20.)
-            & events.Muon.tightId
+        events["goodmuons"] = events.Muons.
+            (events.Muons.pt >= 20.)
+            & events.Muons.tightId
         ]
 
         events = events[

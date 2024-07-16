@@ -69,8 +69,8 @@ weights.add(
     weightDown=events.LHEPdfWeight[:, 31],
 )
 
-eleSF = evaluator["scalefactors_Tight_Electron"](events.Electron.eta, events.Electron.pt)
-eleSFerror = evaluator["scalefactors_Tight_Electron_error"](events.Electron.eta, events.Electron.pt)
+eleSF = evaluator["scalefactors_Tight_Electron"](events.Electrons.eta, events.Electrons.pt)
+eleSFerror = evaluator["scalefactors_Tight_Electron_error"](events.Electrons.eta, events.Electrons.pt)
 weights.add(
     "eleSF",
     # the event weight is the product of the per-electron weights
@@ -115,19 +115,19 @@ from coffea.analysis_tools import PackedSelection
 
 selection = PackedSelection()
 
-selection.add("twoElectron", ak.num(events.Electron, axis=1) == 2)
-selection.add("eleOppSign", ak.sum(events.Electron.charge, axis=1) == 0)
-selection.add("noElectron", ak.num(events.Electron, axis=1) == 0)
+selection.add("twoElectron", ak.num(events.Electrons. axis=1) == 2)
+selection.add("eleOppSign", ak.sum(events.Electrons.charge, axis=1) == 0)
+selection.add("noElectron", ak.num(events.Electrons. axis=1) == 0)
 
-selection.add("twoMuon", ak.num(events.Muon, axis=1) == 2)
-selection.add("muOppSign", ak.sum(events.Muon.charge, axis=1) == 0)
-selection.add("noMuon", ak.num(events.Muon, axis=1) == 0)
+selection.add("twoMuon", ak.num(events.Muons. axis=1) == 2)
+selection.add("muOppSign", ak.sum(events.Muons.charge, axis=1) == 0)
+selection.add("noMuon", ak.num(events.Muons. axis=1) == 0)
 
 
 selection.add(
     "leadPt20",
     # assuming one of `twoElectron` or `twoMuon` is imposed, this implies at least one is above threshold
-    ak.any(events.Electron.pt >= 20.0, axis=1) | ak.any(events.Muon.pt >= 20.0, axis=1)
+    ak.any(events.Electrons.pt >= 20.0, axis=1) | ak.any(events.Muons.pt >= 20.0, axis=1)
 )
 
 print(selection.names)
@@ -206,9 +206,9 @@ def results_taskgraph(events):
         goodevent = selection.require(**cuts)
 
         if region.startswith("ee"):
-            leptons = events.Electron[goodevent]
+            leptons = events.Electrons.goodevent]
         elif region.startswith("mm"):
-            leptons = events.Muon[goodevent]
+            leptons = events.Muons.goodevent]
         lep1 = leptons[:, 0]
         lep2 = leptons[:, 1]
         mass = (lep1 + lep2).mass
