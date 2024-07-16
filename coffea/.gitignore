@@ -1,0 +1,2 @@
+# Ignore notebooks for the coffea module
+*.ipynb
