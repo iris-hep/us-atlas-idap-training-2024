@@ -194,7 +194,7 @@ def results_taskgraph(events):
         "mmSS": {"twoMuon": True, "noElectron": True, "leadPt20": True, "muOppSign": False},
     }
 
-    masshist = (
+    mass_hist = (
         Hist.new
         .StrCat(regions.keys(), name="region")
         .StrCat(["nominal"] + list(weights.variations), name="systematic")
@@ -213,14 +213,14 @@ def results_taskgraph(events):
         lep2 = leptons[:, 1]
         mass = (lep1 + lep2).mass
 
-        masshist.fill(
+        mass_hist.fill(
             region=region,
             systematic="nominal",
             mass=mass,
             weight=weights.weight()[goodevent],
         )
         for syst in weights.variations:
-            masshist.fill(
+            mass_hist.fill(
                 region=region,
                 systematic=syst,
                 mass=mass,
@@ -230,7 +230,7 @@ def results_taskgraph(events):
     out = {
         events.metadata["dataset"]: {
             "sumw": ak.sum(events.genWeight, axis=0),
-            "mass": masshist,
+            "mass": mass_hist,
             "weightStats": weights.weightStatistics,
         }
     }
