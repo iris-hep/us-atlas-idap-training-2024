@@ -38,8 +38,9 @@ file_uri = f"{xcache_caching_server}{file_path}"
 
 # %%
 from pathlib import Path
-if (Path().cwd() / "data" / "example.root").exists():
-    file_name = Path().cwd() / "data" / "example.root"
+_local_path = Path().cwd() / "data" / "example.root"
+if _local_path.exists():
+    file_name = _local_path
 else:
     file_name = file_uri
 
@@ -71,6 +72,7 @@ def filter_name(name):
         "AnalysisMuonsAuxDyn.eta",
         "AnalysisMuonsAuxDyn.phi",
         "AnalysisMuonsAuxDyn.m",
+        "AnalysisMuonsAuxDyn.charge",
         "AnalysisMuonsAuxDyn.quality",
         #
         "AnalysisJetsAuxDyn.pt",
@@ -105,6 +107,13 @@ events = events.compute()
 
 # %%
 events.fields
+
+# %% [markdown]
+# and the subfields that were requested for each field
+
+# %%
+for _field in events.fields:
+    print(f"* {_field}: {events[_field].fields}")
 
 # %% [markdown]
 # To generate some mock systematics, we'll use one of the scale factors from the applying_corrections notebook (note you will have to at least execute the cell that downloads test data in that notebook for this to work)
@@ -190,19 +199,19 @@ from coffea.analysis_tools import PackedSelection
 
 selection = PackedSelection()
 
-selection.add("twoElectron", ak.num(events.Electron, axis=1) == 2)
-selection.add("eleOppSign", ak.sum(events.Electron.charge, axis=1) == 0)
-selection.add("noElectron", ak.num(events.Electron, axis=1) == 0)
+selection.add("twoElectrons", ak.num(events.Electrons, axis=1) == 2)
+selection.add("eleOppSign", ak.sum(events.Electrons.charge, axis=1) == 0)
+selection.add("noElectrons", ak.num(events.Electrons, axis=1) == 0)
 
-selection.add("twoMuon", ak.num(events.Muon, axis=1) == 2)
-selection.add("muOppSign", ak.sum(events.Muon.charge, axis=1) == 0)
-selection.add("noMuon", ak.num(events.Muon, axis=1) == 0)
+selection.add("twoMuons", ak.num(events.Muons, axis=1) == 2)
+selection.add("muOppSign", ak.sum(events.Muons.charge, axis=1) == 0)
+selection.add("noMuons", ak.num(events.Muons, axis=1) == 0)
 
 
 selection.add(
     "leadPt20",
-    # assuming one of `twoElectron` or `twoMuon` is imposed, this implies at least one is above threshold
-    ak.any(events.Electron.pt >= 20.0, axis=1) | ak.any(events.Muon.pt >= 20.0, axis=1)
+    # assuming one of `twoElectrons` or `twoMuons` is imposed, this implies at least one is above threshold
+    ak.any(events.Electrons.pt >= 20.0, axis=1) | ak.any(events.Muons.pt >= 20.0, axis=1)
 )
 
 print(selection.names)
@@ -211,30 +220,30 @@ print(selection.names)
 # To evaluate a boolean mask (e.g. to filter events) we can use the `selection.all(*names)` function, which will compute the AND of all listed boolean selections
 
 # %%
-selection.all("twoElectron", "noMuon", "leadPt20")
+selection.all("twoElectrons", "noMuons", "leadPt20")
 
 # %% [markdown]
-# We can also be more specific and require that a specific set of selections have a given value (with the unspecified ones allowed to be either true or false) using `selection.require`
+# We can also be more specific and require that a specific set of selections have a given value (with the unspecified ones allowed to be either `True` or `False`) using `selection.require`
 
 # %%
-selection.require(twoElectron=True, noMuon=True, eleOppSign=False)
+selection.require(twoElectrons=True, noMuons=True, eleOppSign=False)
 
 # %% [markdown]
 # Using the Python syntax for passing an arguments variable, we can easily implement a "N-1" style selection
 
 # %%
-allCuts = {"twoElectron", "noMuon", "leadPt20"}
+all_cuts = {"twoElectrons", "noMuons", "leadPt20"}
 results = {}
-for cut in allCuts:
-    nev = ak.sum(selection.all(*(allCuts - {cut})), axis=0)
-    results[cut] = nev
+for cut in all_cuts:
+    n_events = ak.sum(selection.all(*(all_cuts - {cut})), axis=0)
+    results[cut] = n_events
     
-results["None"] = ak.sum(selection.all(*allCuts), axis=0)
+results["None"] = ak.sum(selection.all(*all_cuts), axis=0)
 
-c_results, *_ = dask.compute(results)
+cut_results, *_ = dask.compute(results)
 
-for cut, nev in c_results.items():
-    print(f"Events passing all cuts, ignoring {cut}: {nev}")
+for cut, n_events in cut_results.items():
+    print(f"Events passing all cuts, ignoring '{cut}': {n_events}")
 
 # %%
 from coffea import processor
@@ -263,10 +272,10 @@ devents = NanoEventsFactory.from_root(
 def results_taskgraph(events):
 
     regions = {
-        "ee": {"twoElectron": True, "noMuon": True, "leadPt20": True, "eleOppSign": True},
-        "eeSS": {"twoElectron": True, "noMuon": True, "leadPt20": True, "eleOppSign": False},
-        "mm": {"twoMuon": True, "noElectron": True, "leadPt20": True, "muOppSign": True},
-        "mmSS": {"twoMuon": True, "noElectron": True, "leadPt20": True, "muOppSign": False},
+        "ee": {"twoElectrons": True, "noMuons": True, "leadPt20": True, "eleOppSign": True},
+        "eeSS": {"twoElectrons": True, "noMuons": True, "leadPt20": True, "eleOppSign": False},
+        "mm": {"twoMuons": True, "noElectrons": True, "leadPt20": True, "muOppSign": True},
+        "mmSS": {"twoMuons": True, "noElectrons": True, "leadPt20": True, "muOppSign": False},
     }
 
     mass_hist = (
