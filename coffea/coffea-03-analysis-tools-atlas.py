@@ -44,47 +44,67 @@ else:
     file_name = file_uri
 
 
+# %% [markdown]
+# There is lots of information in the files, but for this example we're only going to look at a few fields:
+# * Event information
+# * Electrons
+# * Muons
+# * Jets
+# * B-tagging
+
 # %%
 def filter_name(name):
-    '''
+    """
     Load only the properties/variables needed.
-    '''
-    return name in [
+    """
+    return name in (
         "EventInfoAuxDyn.mcEventWeights",
-
+        #
         "AnalysisElectronsAuxDyn.pt",
         "AnalysisElectronsAuxDyn.eta",
         "AnalysisElectronsAuxDyn.phi",
         "AnalysisElectronsAuxDyn.m",
         "AnalysisElectronsAuxDyn.DFCommonElectronsLHLoose",
         "AnalysisElectronsAuxDyn.charge",
-
+        #
         "AnalysisMuonsAuxDyn.pt",
         "AnalysisMuonsAuxDyn.eta",
         "AnalysisMuonsAuxDyn.phi",
         "AnalysisMuonsAuxDyn.m",
         "AnalysisMuonsAuxDyn.quality",
-
+        #
         "AnalysisJetsAuxDyn.pt",
         "AnalysisJetsAuxDyn.eta",
         "AnalysisJetsAuxDyn.phi",
         "AnalysisJetsAuxDyn.m",
-
+        #
         "BTagging_AntiKt4EMPFlowAuxDyn.DL1dv01_pb",
         "BTagging_AntiKt4EMPFlowAuxDyn.DL1dv01_pc",
         "BTagging_AntiKt4EMPFlowAuxDyn.DL1dv01_pu",
-    ]
+    )
 
 
 # %%
-# file_name = "https://raw.githubusercontent.com/CoffeaTeam/coffea/e06c4b84d0a641ab569ae7c16fecc39fe74c9743/tests/samples/nano_dy.root"
+import warnings
+warnings.filterwarnings("ignore")
+
 events = NanoEventsFactory.from_root(
     {file_name: "CollectionTree"},
     schemaclass=PHYSLITESchema,
-    # metadata={"dataset": "DYJets"},
     uproot_options=dict(filter_name=filter_name),
-    delayed=False,
+    delayed=True,
 ).events()
+
+# %%
+# %%time
+
+events = events.compute()
+
+# %% [markdown]
+# and we get the fields we requested
+
+# %%
+events.fields
 
 # %% [markdown]
 # To generate some mock systematics, we'll use one of the scale factors from the applying_corrections notebook (note you will have to at least execute the cell that downloads test data in that notebook for this to work)
