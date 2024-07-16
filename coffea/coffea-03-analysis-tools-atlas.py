@@ -8,16 +8,14 @@
 
 # %%
 import numpy as np
+import uproot
 import awkward as ak
 import dask
 from hist.dask import Hist
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
 from coffea.nanoevents import NanoEventsFactory, PHYSLITESchema
 
-NanoAODSchema.warn_missing_crossrefs = False
-
-# %% [markdown]
-# You can download those files at your local machine or you can stream them directly. For this demo I will use the [XCache](http://slateci.io/XCache/) service of our compute facility to speed things up.
+# NanoAODSchema.warn_missing_crossrefs = False
 
 # %%
 xcache_caching_server = "root://xcache.af.uchicago.edu:1094//"
@@ -25,20 +23,67 @@ file_path = "root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_
 
 file_uri = f"{xcache_caching_server}{file_path}"
 
-# %%
-delayed=False
-if delayed:
-    this_schema = NanoAODSchema
-else:
-    this_schema = NanoAODSchema.v6
+# %% [markdown]
+# You can download those files at your local machine
+#
+# ```console
+# xrdcp --allow-http --force root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000001.pool.root.1 example.root
+# ```
+#
+# or you can stream them directly. For this demo I will use the [XCache](http://slateci.io/XCache/) service of our compute facility to speed things up.
 
 # %%
-file_name = "https://raw.githubusercontent.com/CoffeaTeam/coffea/e06c4b84d0a641ab569ae7c16fecc39fe74c9743/tests/samples/nano_dy.root"
+# # ! mkdir -p data
+# # ! xrdcp --allow-http "{file_path}" data/example.root
+
+# %%
+from pathlib import Path
+if (Path().cwd() / "data" / "example.root").exists():
+    file_name = Path().cwd() / "data" / "example.root"
+else:
+    file_name = file_uri
+
+
+# %%
+def filter_name(name):
+    '''
+    Load only the properties/variables needed.
+    '''
+    return name in [
+        "EventInfoAuxDyn.mcEventWeights",
+
+        "AnalysisElectronsAuxDyn.pt",
+        "AnalysisElectronsAuxDyn.eta",
+        "AnalysisElectronsAuxDyn.phi",
+        "AnalysisElectronsAuxDyn.m",
+        "AnalysisElectronsAuxDyn.DFCommonElectronsLHLoose",
+        "AnalysisElectronsAuxDyn.charge",
+
+        "AnalysisMuonsAuxDyn.pt",
+        "AnalysisMuonsAuxDyn.eta",
+        "AnalysisMuonsAuxDyn.phi",
+        "AnalysisMuonsAuxDyn.m",
+        "AnalysisMuonsAuxDyn.quality",
+
+        "AnalysisJetsAuxDyn.pt",
+        "AnalysisJetsAuxDyn.eta",
+        "AnalysisJetsAuxDyn.phi",
+        "AnalysisJetsAuxDyn.m",
+
+        "BTagging_AntiKt4EMPFlowAuxDyn.DL1dv01_pb",
+        "BTagging_AntiKt4EMPFlowAuxDyn.DL1dv01_pc",
+        "BTagging_AntiKt4EMPFlowAuxDyn.DL1dv01_pu",
+    ]
+
+
+# %%
+# file_name = "https://raw.githubusercontent.com/CoffeaTeam/coffea/e06c4b84d0a641ab569ae7c16fecc39fe74c9743/tests/samples/nano_dy.root"
 events = NanoEventsFactory.from_root(
-    {file_name: "Events"},
-    schemaclass=this_schema,
-    metadata={"dataset": "DYJets"},
-    delayed=delayed,
+    {file_name: "CollectionTree"},
+    schemaclass=PHYSLITESchema,
+    # metadata={"dataset": "DYJets"},
+    uproot_options=dict(filter_name=filter_name),
+    delayed=False,
 ).events()
 
 # %% [markdown]
