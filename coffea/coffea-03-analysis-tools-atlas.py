@@ -242,7 +242,6 @@ cut_results, *_ = dask.compute(results)
 for cut, n_events in cut_results.items():
     print(f"Events passing all cuts, ignoring '{cut}': {n_events}")
 
-
 # %%
 # from coffea import processor
 
@@ -264,6 +263,21 @@ for cut, n_events in cut_results.items():
 #     metadata={"dataset": "DYJets"},
 #     delayed=True,
 # ).events()
+
+# %% [markdown]
+# Now going to run again, but this time keep everything distributed as task graph
+
+# %%
+events = NanoEventsFactory.from_root(
+    {file_name: "CollectionTree"},
+    schemaclass=PHYSLITESchema,
+    uproot_options=dict(filter_name=filter_name),
+    delayed=True,
+).events()
+
+# %%
+events
+
 
 # %%
 def results_taskgraph(events):
