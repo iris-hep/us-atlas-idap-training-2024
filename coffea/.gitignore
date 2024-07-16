@@ -1,2 +1,5 @@
 # Ignore notebooks for the coffea module
 *.ipynb
+# pixi environments
+.pixi
+*.egg-info

@@ -1,0 +1,13 @@
+[project]
+name = "coffea module"
+version = "0.1.0"
+description = "Add a short description here"
+authors = ["Matthew Feickert <matthew.feickert@cern.ch>"]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tasks]
+
+[dependencies]
+coffea = "==2024.6.1"
+jupyterlab = ">=4.2.3,<4.3"
