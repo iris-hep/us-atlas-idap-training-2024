@@ -1,9 +1,10 @@
 # %% [markdown]
 # # Analysis tools
 #
-# Now that we know how to access data with NanoEvents and apply corrections, let's go through some useful columnar analysis tools and idioms for building collections of results, namely, the eventual output of a coffea callable (or processor). The most familiar type of output may be the histogram (one type of accumulator).
+# Now that we [know how to access data with `NanoEvents`](https://github.com/iris-hep/us-atlas-idap-training-2024/tree/main/PHYSLITE), let's go through some useful columnar analysis tools and idioms for building collections of results, namely, the eventual output of a `coffea` callable (or processor).
+# The most familiar type of output may be the histogram (one type of accumulator).
 #
-# We'll use our small sample file to demonstrate the utilities, although it won't be very interesting to analyze
+# We'll use a small sample file to demonstrate the utilities, although it won't be very interesting to analyze.
 
 # %%
 import numpy as np
@@ -22,9 +23,9 @@ else:
     this_schema = NanoAODSchema.v6
 
 # %%
-fname = "https://raw.githubusercontent.com/CoffeaTeam/coffea/master/tests/samples/nano_dy.root"
+file_name = "https://raw.githubusercontent.com/CoffeaTeam/coffea/e06c4b84d0a641ab569ae7c16fecc39fe74c9743/tests/samples/nano_dy.root"
 events = NanoEventsFactory.from_root(
-    {fname: "Events"},
+    {file_name: "Events"},
     schemaclass=this_schema,
     metadata={"dataset": "DYJets"},
     delayed=delayed,
@@ -144,7 +145,7 @@ selection.all("twoElectron", "noMuon", "leadPt20")
 selection.require(twoElectron=True, noMuon=True, eleOppSign=False)
 
 # %% [markdown]
-# Using the python syntax for passing an arguments variable, we can easily implement a "N-1" style selection
+# Using the Python syntax for passing an arguments variable, we can easily implement a "N-1" style selection
 
 # %%
 allCuts = {"twoElectron", "noMuon", "leadPt20"}
@@ -174,9 +175,9 @@ from coffea import processor
 #  
 
 # %%
-fname = "https://raw.githubusercontent.com/CoffeaTeam/coffea/master/tests/samples/nano_dy.root"
+file_name = "https://raw.githubusercontent.com/CoffeaTeam/coffea/e06c4b84d0a641ab569ae7c16fecc39fe74c9743/tests/samples/nano_dy.root"
 devents = NanoEventsFactory.from_root(
-    {fname: "Events"},
+    {file_name: "Events"},
     schemaclass=NanoAODSchema,
     metadata={"dataset": "DYJets"},
     delayed=True,
@@ -184,7 +185,7 @@ devents = NanoEventsFactory.from_root(
 
 
 # %%
-def results_tg(events):
+def results_taskgraph(events):
 
     regions = {
         "ee": {"twoElectron": True, "noMuon": True, "leadPt20": True, "eleOppSign": True},
@@ -237,7 +238,7 @@ def results_tg(events):
 
 
 # %%
-out = results_tg(devents)
+out = results_taskgraph(devents)
 
 # %%
 out
@@ -253,5 +254,3 @@ c_out
 
 # %%
 c_out["DYJets"]["mass"][sum, "nominal", :]
-
-# %%
