@@ -11,6 +11,7 @@ example = "jupyter lab"
 
 [dependencies]
 coffea = "==2024.6.1"
+fsspec-xrootd = "==0.3.0"
 requests = ">=2.32.3,<2.33"
 aiohttp = ">=3.9.5,<3.10"
 jupyterlab = ">=4.2.3,<4.3"
