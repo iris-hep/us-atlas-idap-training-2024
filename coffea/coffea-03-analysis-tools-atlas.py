@@ -12,10 +12,7 @@ import uproot
 import awkward as ak
 import dask
 from hist.dask import Hist
-from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
 from coffea.nanoevents import NanoEventsFactory, PHYSLITESchema
-
-# NanoAODSchema.warn_missing_crossrefs = False
 
 # %%
 xcache_caching_server = "root://xcache.af.uchicago.edu:1094//"
