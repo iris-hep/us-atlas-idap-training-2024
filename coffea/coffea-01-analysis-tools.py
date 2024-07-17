@@ -44,6 +44,7 @@ file_uri = f"{xcache_caching_server}{open_data_storage}{file_path}"
 
 # %%
 from pathlib import Path
+
 _local_path = Path().cwd() / "data" / "example.root"
 if _local_path.exists():
     file_name = _local_path
@@ -178,7 +179,8 @@ selection.add("noMuons", ak.num(events.Muons, axis=1) == 0)
 selection.add(
     "leadPt20",
     # assuming one of `twoElectrons` or `twoMuons` is imposed, this implies at least one is above threshold
-    ak.any(events.Electrons.pt >= 20.0, axis=1) | ak.any(events.Muons.pt >= 20.0, axis=1)
+    ak.any(events.Electrons.pt >= 20.0, axis=1)
+    | ak.any(events.Muons.pt >= 20.0, axis=1),
 )
 
 print(selection.names)
@@ -218,6 +220,7 @@ for cut, n_events in cut_results.items():
 # %%
 GeV = 1000
 
+
 def object_selection(events):
     """
     Select objects based on kinematic and quality criteria
@@ -226,13 +229,13 @@ def object_selection(events):
     electrons = events.Electrons
     muons = events.Muons
 
-    electron_reqs = (electrons.pt/GeV > 20) & \
-                    (np.abs(electrons.eta) < 2.47) & \
-                    (electrons.DFCommonElectronsLHLoose == 1)
+    electron_reqs = (
+        (electrons.pt / GeV > 20)
+        & (np.abs(electrons.eta) < 2.47)
+        & (electrons.DFCommonElectronsLHLoose == 1)
+    )
 
-    muon_reqs = (muons.pt/GeV > 20) & \
-                (np.abs(muons.eta) < 2.7) & \
-                (muons.quality == 2)
+    muon_reqs = (muons.pt / GeV > 20) & (np.abs(muons.eta) < 2.7) & (muons.quality == 2)
 
     # only keep objects that pass our requirements
     electrons = electrons[electron_reqs]
@@ -240,20 +243,24 @@ def object_selection(events):
 
     return electrons, muons
 
+
 def region_selection(electrons, muons):
     """
     Select events based on object multiplicity
     """
 
-    selections = PackedSelection(dtype='uint64')
+    selections = PackedSelection(dtype="uint64")
     # basic selection criteria
     selections.add("exactly_4e", ak.num(electrons) == 4)
     selections.add("total_e_charge_zero", ak.sum(electrons.charge, axis=1) == 0)
     selections.add("exactly_0m", ak.num(muons) == 0)
     # selection criteria combination
-    selections.add("4e0m", selections.all("exactly_4e", "total_e_charge_zero", "exactly_0m"))
+    selections.add(
+        "4e0m", selections.all("exactly_4e", "total_e_charge_zero", "exactly_0m")
+    )
 
     return selections.all("4e0m")
+
 
 def calculate_inv_mass(electrons):
     """
@@ -265,7 +272,7 @@ def calculate_inv_mass(electrons):
     e1, e2, e3, e4 = ak.unzip(candidates)
     candidates["p4"] = e1 + e2 + e3 + e4
     higgs_mass = candidates["p4"].mass
-    observable = ak.flatten(higgs_mass/GeV)
+    observable = ak.flatten(higgs_mass / GeV)
 
     return observable
 
@@ -280,32 +287,39 @@ selection_4e0m = region_selection(el, mu)
 
 # %%
 fileset = {
-            "Higgs"  : {
-                        'files': {
-                                   'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000001.pool.root.1' : 'CollectionTree',
-                                   'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000002.pool.root.1' : 'CollectionTree',
-                                   'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000005.pool.root.1' : 'CollectionTree',
-                                   'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000006.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000007.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000008.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000009.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000010.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000011.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000012.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000013.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000014.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000016.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000017.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000018.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000019.pool.root.1' : 'CollectionTree',
-                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000020.pool.root.1' : 'CollectionTree'
-                                 },
-                        'metadata': {'process': 'Higgs', 'xsec': 28.3, 'genFiltEff': 1.240E-04, 'kFactor': 1.45, 'sumOfWeights': 114108.08}
-                      }
-          }
+    "Higgs": {
+        "files": {
+            "root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000001.pool.root.1": "CollectionTree",
+            "root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000002.pool.root.1": "CollectionTree",
+            "root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000005.pool.root.1": "CollectionTree",
+            "root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000006.pool.root.1": "CollectionTree",
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000007.pool.root.1' : 'CollectionTree',
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000008.pool.root.1' : 'CollectionTree',
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000009.pool.root.1' : 'CollectionTree',
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000010.pool.root.1' : 'CollectionTree',
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000011.pool.root.1' : 'CollectionTree',
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000012.pool.root.1' : 'CollectionTree',
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000013.pool.root.1' : 'CollectionTree',
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000014.pool.root.1' : 'CollectionTree',
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000016.pool.root.1' : 'CollectionTree',
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000017.pool.root.1' : 'CollectionTree',
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000018.pool.root.1' : 'CollectionTree',
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000019.pool.root.1' : 'CollectionTree',
+            # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000020.pool.root.1' : 'CollectionTree'
+        },
+        "metadata": {
+            "process": "Higgs",
+            "xsec": 28.3,
+            "genFiltEff": 1.240e-04,
+            "kFactor": 1.45,
+            "sumOfWeights": 114108.08,
+        },
+    }
+}
 
 # pre-process
 from coffea import dataset_tools
+
 samples, _ = dataset_tools.preprocess(fileset)
 
 
@@ -331,13 +345,13 @@ samples, _ = dataset_tools.preprocess(fileset)
 # create histogram with observables
 def create_histogram(events):
     hist_4e0m = (
-        Hist.new.Reg(50, 100, 150, name='m_inv', label=r"$m_{inv.}(4e)$ [GeV]")
-        .StrCat([], name='process', label='Process', growth=True)
+        Hist.new.Reg(50, 100, 150, name="m_inv", label=r"$m_{inv.}(4e)$ [GeV]")
+        .StrCat([], name="process", label="Process", growth=True)
         .Weight()
-        )
+    )
 
     # read metadata
-    process_name = events.metadata['process']
+    process_name = events.metadata["process"]
     x_sec = events.metadata["xsec"]
     gen_filt_eff = events.metadata["genFiltEff"]
     k_factor = events.metadata["kFactor"]
@@ -349,31 +363,32 @@ def create_histogram(events):
     selection_4e0m = region_selection(el, mu)
 
     # normalization for MC
-    lumi = 36100. # /pb This is the luminosity (the amount of real data collected) corresponding to the open data released
+    lumi = 36100.0  # /pb This is the luminosity (the amount of real data collected) corresponding to the open data released
     xsec_weight = x_sec * gen_filt_eff * k_factor * lumi / sum_of_weights
     print(f"Processing {process_name} with xsec weight {xsec_weight}")
     mc_weight = events.EventInfo[selection_4e0m][:, 1]["mcEventWeights"]
 
     # observable calculation and histogram filling
     inv_mass = calculate_inv_mass(el[selection_4e0m])
-    hist_4e0m.fill(inv_mass, weight=mc_weight*xsec_weight, process=process_name)
+    hist_4e0m.fill(inv_mass, weight=mc_weight * xsec_weight, process=process_name)
 
     return hist_4e0m
 
 
 # %%
 # create the task graph
-tasks = dataset_tools.apply_to_fileset(create_histogram,
-                                       samples,
-                                       schemaclass=PHYSLITESchema,
-                                       uproot_options=dict(filter_name=filter_name)
-                                      )
+tasks = dataset_tools.apply_to_fileset(
+    create_histogram,
+    samples,
+    schemaclass=PHYSLITESchema,
+    uproot_options=dict(filter_name=filter_name),
+)
 
 # %%
 # %%time
 
 # execute
-(out, ) = dask.compute(tasks)
+(out,) = dask.compute(tasks)
 
 # %%
 # stack all the histograms together, as we processed each file separately
