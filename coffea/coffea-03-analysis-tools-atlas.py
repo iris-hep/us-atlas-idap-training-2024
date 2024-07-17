@@ -15,6 +15,12 @@ from hist.dask import Hist
 from coffea.nanoevents import NanoEventsFactory, PHYSLITESchema
 
 # %%
+from importlib.metadata import version
+
+for package in ["numpy", "awkward", "uproot", "coffea", "dask"]:
+    print(f"# {package}: v{version(package)}")
+
+# %%
 xcache_caching_server = "root://xcache.af.uchicago.edu:1094//"
 file_path = "root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000001.pool.root.1"
 
