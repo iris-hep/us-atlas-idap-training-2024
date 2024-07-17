@@ -204,13 +204,251 @@ results = {}
 for cut in all_cuts:
     n_events = ak.sum(selection.all(*(all_cuts - {cut})), axis=0)
     results[cut] = n_events
-    
+
 results["None"] = ak.sum(selection.all(*all_cuts), axis=0)
 
 cut_results, *_ = dask.compute(results)
 
 for cut, n_events in cut_results.items():
     print(f"Events passing all cuts, ignoring '{cut}': {n_events}")
+
+# %% [markdown]
+# ### Higgs example
+
+# %%
+GeV = 1000
+
+def object_selection(events):
+    """
+    Select objects based on kinematic and quality criteria
+    """
+
+    electrons = events.Electrons
+    muons = events.Muons
+
+    electron_reqs = (electrons.pt/GeV > 20) & \
+                    (np.abs(electrons.eta) < 2.47) & \
+                    (electrons.DFCommonElectronsLHLoose == 1)
+
+    muon_reqs = (muons.pt/GeV > 20) & \
+                (np.abs(muons.eta) < 2.7) & \
+                (muons.quality == 2)
+
+    # only keep objects that pass our requirements
+    electrons = electrons[electron_reqs]
+    muons = muons[muon_reqs]
+
+    return electrons, muons
+
+def region_selection(electrons, muons):
+    """
+    Select events based on object multiplicity
+    """
+
+    selections = PackedSelection(dtype='uint64')
+    # basic selection criteria
+    selections.add("exactly_4e", ak.num(electrons) == 4)
+    selections.add("total_e_charge_zero", ak.sum(electrons.charge, axis=1) == 0)
+    selections.add("exactly_0m", ak.num(muons) == 0)
+    # selection criteria combination
+    selections.add("4e0m", selections.all("exactly_4e", "total_e_charge_zero", "exactly_0m"))
+
+    return selections.all("4e0m")
+
+def calculate_inv_mass(electrons):
+    """
+    Construct invariant mass observable
+    """
+
+    # reconstruct Higgs as 4e system
+    candidates = ak.combinations(electrons, 4)
+    e1, e2, e3, e4 = ak.unzip(candidates)
+    candidates["p4"] = e1 + e2 + e3 + e4
+    higgs_mass = candidates["p4"].mass
+    observable = ak.flatten(higgs_mass/GeV)
+
+    return observable
+
+
+# %%
+# select objects and events
+el, mu = object_selection(events)
+selection_4e0m = region_selection(el, mu)
+
+# %%
+# XCache
+fileset = {
+            "Higgs"  : {
+                        'files': {
+                                   f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.38191712._000001.pool.root.1": 'CollectionTree',
+                                   f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.38191712._000002.pool.root.1": 'CollectionTree',
+                                   f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.38191712._000003.pool.root.1": 'CollectionTree',
+                                   f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.38191712._000020.pool.root.1": 'CollectionTree',
+                                 },
+                        'metadata': {'process': 'Higgs', 'xsec': 28.3, 'genFiltEff': 1.240E-04, 'kFactor': 1.45, 'sumOfWeights': 114108.08}
+                      }
+          }
+
+# pre-process
+samples, _ = dataset_tools.preprocess(fileset)
+
+
+# %%
+# create histogram with observables
+def create_histogram(events):
+    hist_4e0m = (
+        Hist.new.Reg(50, 100, 150, name='m_inv', label=r"$m_{inv.}(4e)$ [GeV]")
+        .StrCat([], name='process', label='Process', growth=True)
+        .Weight()
+        )
+
+    # read metadata
+    process_name = events.metadata['process']
+    x_sec = events.metadata["xsec"]
+    gen_filt_eff = events.metadata["genFiltEff"]
+    k_factor = events.metadata["kFactor"]
+    sum_of_weights = events.metadata["sumOfWeights"]
+
+    # as mentined already, the actual analysis code remains the same!
+    # select objects and events
+    el, mu = object_selection(events)
+    selection_4e0m = region_selection(el, mu)
+
+    # normalization for MC
+    lumi = 36100. # /pb This is the luminosity (the amount of real data collected) corresponding to the open data released
+    xsec_weight = x_sec * gen_filt_eff * k_factor * lumi / sum_of_weights
+    print(f"Processing {process_name} with xsec weight {xsec_weight}")
+    mc_weight = events.EventInfo[selection_4e0m][:, 1]["mcEventWeights"]
+
+    # observable calculation and histogram filling
+    inv_mass = calculate_inv_mass(el[selection_4e0m])
+    hist_4e0m.fill(inv_mass, weight=mc_weight*xsec_weight, process=process_name)
+
+    return hist_4e0m
+
+
+# %%
+# create the task graph
+tasks = dataset_tools.apply_to_fileset(create_histogram,
+                                       samples,
+                                       schemaclass=PHYSLITESchema,
+                                       uproot_options=dict(filter_name=filter_name)
+                                      )
+
+# %%
+# %%time
+
+# execute
+(out, ) = dask.compute(tasks)
+
+# %%
+# stack all the histograms together, as we processed each file separately
+full_histogram = sum(hist for hist in out.values())
+
+# %%
+# plot
+artists = full_histogram.plot(histtype="fill")
+
+ax = artists[0].stairs.axes
+ax.legend()
+ax.set_ylabel("A.U.");
+
+# %% [markdown]
+# ### DEBUG
+
+# %% [markdown]
+# The metadata for open data is available by the [metadata table](https://opendata.atlas.cern/docs/documentation/overview_data/data_research_2024#metadata).
+
+# %%
+# THESE VALUES ARE WRONG
+
+# XCache
+fileset = {
+            "Zjets"  : {
+                        'files': {
+                                   file_name : "CollectionTree",
+                                 },
+                        'metadata': {'process': 'Zjets', 'xsec': 28.3, 'genFiltEff': 1.240E-04, 'kFactor': 1.45, 'sumOfWeights': 114108.08}
+                      }
+          }
+
+# pre-process
+from coffea import dataset_tools
+samples, _ = dataset_tools.preprocess(fileset)
+
+# %%
+GeV = 1000
+
+def object_selection(events):
+    """
+    Select objects based on kinematic and quality criteria
+    """
+
+    electrons = events.Electrons
+    muons = events.Muons
+
+    electron_reqs = (electrons.pt/GeV > 20) & \
+                    (np.abs(electrons.eta) < 2.47) & \
+                    (electrons.DFCommonElectronsLHLoose == 1)
+
+    muon_reqs = (muons.pt/GeV > 20) & \
+                (np.abs(muons.eta) < 2.7) & \
+                (muons.quality == 2)
+
+    # only keep objects that pass our requirements
+    electrons = electrons[electron_reqs]
+    muons = muons[muon_reqs]
+
+    return electrons, muons
+
+
+def region_selection(electrons, muons):
+    """
+    Select events based on object multiplicity
+    """
+    # selections = PackedSelection(dtype='uint64')
+    # # basic selection criteria
+    # selections.add("exactly_4e", ak.num(electrons) == 4)
+    # selections.add("total_e_charge_zero", ak.sum(electrons.charge, axis=1) == 0)
+    # selections.add("exactly_0m", ak.num(muons) == 0)
+    # # selection criteria combination
+    # selections.add("4e0m", selections.all("exactly_4e", "total_e_charge_zero", "exactly_0m"))
+
+    # return selections.all("4e0m")
+
+    selection = PackedSelection()
+
+    selection.add("twoElectrons", ak.num(electrons, axis=1) == 2)
+    selection.add("eleOppSign", ak.sum(electrons.charge, axis=1) == 0)
+    selection.add("noElectrons", ak.num(electrons, axis=1) == 0)
+
+    selection.add("twoMuons", ak.num(muons, axis=1) == 2)
+    selection.add("muOppSign", ak.sum(muons.charge, axis=1) == 0)
+    selection.add("noMuons", ak.num(muons, axis=1) == 0)
+
+    # This mihgt not be needed
+    # assuming one of `twoElectrons` or `twoMuons` is imposed, this implies at least one is above threshold
+    selection.add(
+        "leadPt20",
+        ak.any(electrons.pt >= 20.0, axis=1) | ak.any(muons.pt >= 20.0, axis=1)
+    )
+
+    return selection.all("leadPt20")
+
+def calculate_inv_mass(electrons):
+    """
+    Construct invariant mass observable
+    """
+
+    # reconstruct Higgs as 4e system
+    candidates = ak.combinations(electrons, 4)
+    e1, e2, e3, e4 = ak.unzip(candidates)
+    candidates["p4"] = e1 + e2 + e3 + e4
+    higgs_mass = candidates["p4"].mass
+    observable = ak.flatten(higgs_mass/GeV)
+
+    return observable
+
 
 # %% [markdown]
 # ### Bringing it together
@@ -220,7 +458,7 @@ for cut, n_events in cut_results.items():
 #  - a histogram of the dilepton invariant mass, with category axes for various selection regions of interest and  systematics; and
 #  - the weight statistics, for debugging purposes
 # And, additionally, we'll switch to delayed mode and compute the results with an explicit call through dask's interface
-#  
+#
 
 # %%
 # file_name = "https://raw.githubusercontent.com/CoffeaTeam/coffea/e06c4b84d0a641ab569ae7c16fecc39fe74c9743/tests/samples/nano_dy.root"
@@ -248,9 +486,6 @@ events
 # %%
 events = events.compute()
 
-# %%
-events.
-
 
 # %%
 def results_taskgraph(events):
@@ -268,12 +503,25 @@ def results_taskgraph(events):
         .Weight()
         )
 
-    # read metadata
-    process_name = events.metadata['process']
-    x_sec = events.metadata["xsec"]
-    gen_filt_eff = events.metadata["genFiltEff"]
-    k_factor = events.metadata["kFactor"]
-    sum_of_weights = events.metadata["sumOfWeights"]
+    for region, cuts in regions.items():
+        good_event = selection.require(**cuts)
+
+        if region.startswith("ee"):
+            leptons = events.Electrons[good_event]
+        elif region.startswith("mm"):
+            leptons = events.Muons[good_event]
+        lep1 = leptons[:, 0]
+        lep2 = leptons[:, 1]
+
+        print(leptons)
+        print(lep1+lep2)
+
+    # # read metadata
+    # process_name = events.metadata['process']
+    # x_sec = events.metadata["xsec"]
+    # gen_filt_eff = events.metadata["genFiltEff"]
+    # k_factor = events.metadata["kFactor"]
+    # sum_of_weights = events.metadata["sumOfWeights"]
 
 out = results_taskgraph(events)
 
