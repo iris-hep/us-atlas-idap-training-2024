@@ -4,7 +4,7 @@
 # Now that we [know how to access data with `NanoEvents`](https://github.com/iris-hep/us-atlas-idap-training-2024/tree/main/PHYSLITE), let's go through some useful columnar analysis tools and idioms for building collections of results, namely, the eventual output of a `coffea` callable (or processor).
 # The most familiar type of output may be the histogram (one type of accumulator).
 #
-# We'll use a small sample file to demonstrate the utilities, although it won't be very interesting to analyze.
+# We'll just look at single files for the time being to keep things simple.
 
 # %%
 import numpy as np
@@ -14,6 +14,8 @@ import dask
 from hist.dask import Hist
 from coffea.nanoevents import NanoEventsFactory, PHYSLITESchema
 
+PHYSLITESchema.warn_missing_crossrefs = False
+
 # %%
 from importlib.metadata import version
 
@@ -22,9 +24,10 @@ for package in ["numpy", "awkward", "uproot", "coffea", "dask"]:
 
 # %%
 xcache_caching_server = "root://xcache.af.uchicago.edu:1094//"
-file_path = "root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000001.pool.root.1"
+open_data_storage = "root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/"
+file_path = "DAOD_PHYSLITE.38191712._000001.pool.root.1"
 
-file_uri = f"{xcache_caching_server}{file_path}"
+file_uri = f"{xcache_caching_server}{open_data_storage}{file_path}"
 
 # %% [markdown]
 # You can download those files at your local machine
@@ -37,7 +40,7 @@ file_uri = f"{xcache_caching_server}{file_path}"
 
 # %%
 # # ! mkdir -p data
-# # ! xrdcp --allow-http "{file_path}" data/example.root
+# # ! xrdcp --allow-http "{open_data_storage}{file_path}" data/example.root
 
 # %%
 from pathlib import Path
@@ -89,10 +92,10 @@ def filter_name(name):
     )
 
 
-# %%
-import warnings
-warnings.filterwarnings("ignore")
+# %% [markdown]
+# There will be some warnings from `coffea`, but in this case they can be ignored.
 
+# %%
 events = NanoEventsFactory.from_root(
     {file_name: "CollectionTree"},
     schemaclass=PHYSLITESchema,
@@ -122,83 +125,41 @@ for _field in events.fields:
     print(f"* {_field}: {events[_field].fields}")
 
 # %% [markdown]
-# To generate some mock systematics, we'll use one of the scale factors from the applying_corrections notebook (note you will have to at least execute the cell that downloads test data in that notebook for this to work)
-
-# %%
-from coffea.lookup_tools import extractor
-
-ext = extractor()
-ext.add_weight_sets(["* * data/testSF2d.histo.root"])
-ext.finalize()
-evaluator = ext.make_evaluator()
-evaluator.keys()
-
-# %% [markdown]
-# ## Weights
-#
-# This is a container for event weights and associated systematic shifts, which helps track the product of the weights (i.e. the total event weight to be used for filling histograms) as well as systematic variations to that product. Here we demo its use by constructing an event weight consisting of the generator weight, the $\alpha_s$ uncertainty variation, and the electron ID scale factor with its associated systematic.
-
-# %%
-from coffea.analysis_tools import Weights
-
-if delayed:
-    weights = Weights(None)
-else:
-    weights = Weights(len(events))
-
-weights.add("genWeight", events.genWeight)
-
-weights.add(
-    "alphaS",
-    # in NanoAOD, the generator weights are already stored with respect to nominal
-    weight=ak.ones_like(events.run),
-    # 31 => alphas(MZ)=0.1165 central value; 32 => alphas(MZ)=0.1195
-    # per https://lhapdfsets.web.cern.ch/current/PDF4LHC15_nnlo_30_pdfas/PDF4LHC15_nnlo_30_pdfas.info
-    # which was found by looking up the LHA ID in events.LHEPdfWeight.__doc__
-    weightUp=events.LHEPdfWeight[:, 32],
-    weightDown=events.LHEPdfWeight[:, 31],
-)
-
-eleSF = evaluator["scalefactors_Tight_Electron"](events.Electrons.eta, events.Electrons.pt)
-eleSFerror = evaluator["scalefactors_Tight_Electron_error"](events.Electrons.eta, events.Electrons.pt)
-weights.add(
-    "eleSF",
-    # the event weight is the product of the per-electron weights
-    # note, in a real analysis we would first have to select electrons of interest
-    weight=ak.prod(eleSF, axis=1),
-    weightUp=ak.prod(eleSF + eleSFerror, axis=1),
-)
-
-# %% [markdown]
-# A [WeightStatistics](https://coffeateam.github.io/coffea/api/coffea.analysis_tools.WeightStatistics.html) object tracks the smallest and largest weights seen per type, as well as some other summary statistics. It is kept internally and can be accessed via `weights.weightStatistics`. This object is addable, so it can be used in an accumulator.
-
-# %%
-weights.weightStatistics
-
-# %% [markdown]
-# Then the total event weight is available via
-
-# %%
-weights.weight()
-
-# %% [markdown]
-# And the total event weight with a given variation is available via
-
-# %%
-weights.weight("eleSFUp")
-
-# %% [markdown]
-# all variations tracked by the `weights` object are available via
-
-# %%
-weights.variations
-
-# %% [markdown]
 # ## `PackedSelection`
 #
 # This class can store several boolean arrays in a memory-efficient mannner and evaluate arbitrary combinations of boolean requirements in an CPU-efficient way. Supported inputs include 1D `numpy` or `awkward` arrays. This makes it a good tool to form analysis signal and control regions, and to implement cutflow or "N-1" plots.
 #
 # Below we create a packed selection with some typical selections for a $Z$+jets study, to be used later to form same-sign and opposite-sign $ee$ and $\mu\mu$ event categories/regions.
+
+# %% [markdown]
+# We'll use [ATLAS open data electroweak boson simulation](https://opendata.cern.ch/record/80010) for this ( DOI:[10.7483/OPENDATA.ATLAS.K5SU.X65Y](http://doi.org/10.7483/OPENDATA.ATLAS.K5SU.X65Y))
+
+# %%
+file_path = "DAOD_PHYSLITE.37621317._000001.pool.root.1"
+
+file_uri = f"{xcache_caching_server}{open_data_storage}{file_path}"
+
+# %%
+# ! mkdir -p data
+# ! xrdcp --allow-http "{open_data_storage}{file_path}" data/Z_jets.root
+
+# %%
+_local_path = Path().cwd() / "data" / "Z_jets.root"
+if _local_path.exists():
+    file_name = _local_path
+else:
+    file_name = file_uri
+
+# %%
+events = NanoEventsFactory.from_root(
+    {file_name: "CollectionTree"},
+    schemaclass=PHYSLITESchema,
+    uproot_options=dict(filter_name=filter_name),
+    delayed=True,
+).events()
+
+# %%
+events = events.compute()
 
 # %%
 from coffea.analysis_tools import PackedSelection
@@ -251,9 +212,6 @@ cut_results, *_ = dask.compute(results)
 for cut, n_events in cut_results.items():
     print(f"Events passing all cuts, ignoring '{cut}': {n_events}")
 
-# %%
-# from coffea import processor
-
 # %% [markdown]
 # ### Bringing it together
 #
@@ -287,6 +245,41 @@ events = NanoEventsFactory.from_root(
 # %%
 events
 
+# %%
+events = events.compute()
+
+# %%
+events.
+
+
+# %%
+def results_taskgraph(events):
+
+    regions = {
+        "ee": {"twoElectrons": True, "noMuons": True, "leadPt20": True, "eleOppSign": True},
+        "eeSS": {"twoElectrons": True, "noMuons": True, "leadPt20": True, "eleOppSign": False},
+        "mm": {"twoMuons": True, "noElectrons": True, "leadPt20": True, "muOppSign": True},
+        "mmSS": {"twoMuons": True, "noElectrons": True, "leadPt20": True, "muOppSign": False},
+    }
+
+    hist_mass = (
+        Hist.new.Reg(60, 60, 120, name="mass", label=r"$m_{ll}$ [GeV]")
+        .StrCat([], name="process", label="Process", growth=True)
+        .Weight()
+        )
+
+    # read metadata
+    process_name = events.metadata['process']
+    x_sec = events.metadata["xsec"]
+    gen_filt_eff = events.metadata["genFiltEff"]
+    k_factor = events.metadata["kFactor"]
+    sum_of_weights = events.metadata["sumOfWeights"]
+
+out = results_taskgraph(events)
+
+
+# %% [markdown]
+# ---
 
 # %%
 def results_taskgraph(events):
