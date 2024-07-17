@@ -8,7 +8,6 @@
 
 # %%
 import numpy as np
-import uproot
 import awkward as ak
 import dask
 from hist.dask import Hist
@@ -59,6 +58,7 @@ else:
 # * Muons
 # * Jets
 # * B-tagging
+
 
 # %%
 def filter_name(name):
@@ -340,6 +340,7 @@ samples, _ = dataset_tools.preprocess(fileset)
 # # pre-process
 # from coffea import dataset_tools
 # samples, _ = dataset_tools.preprocess(fileset)
+
 
 # %%
 # create histogram with observables
