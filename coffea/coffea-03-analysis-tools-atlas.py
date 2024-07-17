@@ -140,8 +140,8 @@ file_path = "DAOD_PHYSLITE.37621317._000001.pool.root.1"
 file_uri = f"{xcache_caching_server}{open_data_storage}{file_path}"
 
 # %%
-# ! mkdir -p data
-# ! xrdcp --allow-http "{open_data_storage}{file_path}" data/Z_jets.root
+# # ! mkdir -p data
+# # ! xrdcp --allow-http "{open_data_storage}{file_path}" data/Z_jets.root
 
 # %%
 _local_path = Path().cwd() / "data" / "Z_jets.root"
@@ -276,22 +276,53 @@ el, mu = object_selection(events)
 selection_4e0m = region_selection(el, mu)
 
 # %%
-# XCache
 fileset = {
             "Higgs"  : {
                         'files': {
-                                   f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.38191712._000001.pool.root.1": 'CollectionTree',
-                                   f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.38191712._000002.pool.root.1": 'CollectionTree',
-                                   f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.38191712._000003.pool.root.1": 'CollectionTree',
-                                   f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.38191712._000020.pool.root.1": 'CollectionTree',
+                                   'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000001.pool.root.1' : 'CollectionTree',
+                                   'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000002.pool.root.1' : 'CollectionTree',
+                                   'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000005.pool.root.1' : 'CollectionTree',
+                                   'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000006.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000007.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000008.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000009.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000010.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000011.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000012.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000013.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000014.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000016.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000017.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000018.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000019.pool.root.1' : 'CollectionTree',
+                                   # 'root://xcache.af.uchicago.edu:1094//root://eospublic.cern.ch//eos/opendata/atlas/rucio/mc20_13TeV/DAOD_PHYSLITE.38191712._000020.pool.root.1' : 'CollectionTree'
                                  },
                         'metadata': {'process': 'Higgs', 'xsec': 28.3, 'genFiltEff': 1.240E-04, 'kFactor': 1.45, 'sumOfWeights': 114108.08}
                       }
           }
 
 # pre-process
+from coffea import dataset_tools
 samples, _ = dataset_tools.preprocess(fileset)
 
+
+# %%
+# # XCache
+# fileset = {
+#             "Higgs"  : {
+#                         'files': {
+#                                    f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.38191712._000001.pool.root.1": 'CollectionTree',
+#                                    f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.38191712._000002.pool.root.1": 'CollectionTree',
+#                                    f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.38191712._000003.pool.root.1": 'CollectionTree',
+#                                    f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.38191712._000020.pool.root.1": 'CollectionTree',
+#                                  },
+#                         'metadata': {'process': 'Higgs', 'xsec': 28.3, 'genFiltEff': 1.240E-04, 'kFactor': 1.45, 'sumOfWeights': 114108.08}
+#                       }
+#           }
+
+# # pre-process
+# from coffea import dataset_tools
+# samples, _ = dataset_tools.preprocess(fileset)
 
 # %%
 # create histogram with observables
@@ -346,12 +377,19 @@ tasks = dataset_tools.apply_to_fileset(create_histogram,
 full_histogram = sum(hist for hist in out.values())
 
 # %%
+plot_dir = Path().cwd() / "plots"
+plot_dir.mkdir(exist_ok=True)
+
+# %%
 # plot
 artists = full_histogram.plot(histtype="fill")
 
 ax = artists[0].stairs.axes
 ax.legend()
-ax.set_ylabel("A.U.");
+ax.set_ylabel("A.U.")
+
+fig = ax.get_figure()
+fig.savefig(plot_dir / "higgs_mass.png")
 
 # %% [markdown]
 # ### DEBUG
@@ -596,9 +634,6 @@ c_out, *_ = dask.compute(out)
 
 # %%
 c_out
-
-# %% [markdown]
-# The mass histogram itself is not very interesting with only 40 input events, however
 
 # %%
 c_out["DYJets"]["mass"][sum, "nominal", :]
