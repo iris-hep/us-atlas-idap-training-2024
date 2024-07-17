@@ -100,6 +100,9 @@ events = NanoEventsFactory.from_root(
     delayed=True,
 ).events()
 
+# %% [markdown]
+# The `events` haven't yet actually been evaluated (it is still a Dask task graph) but let's go ahead and evaluate them now so we can inspect the events more.
+
 # %%
 # %%time
 
