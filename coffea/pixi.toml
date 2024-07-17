@@ -1,0 +1,19 @@
+[project]
+name = "coffea module"
+version = "0.1.0"
+description = "Add a short description here"
+authors = ["Matthew Feickert <matthew.feickert@cern.ch>"]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64"]
+
+[tasks]
+example = "jupyter lab"
+
+[dependencies]
+coffea = "==2024.6.1"
+fsspec-xrootd = "==0.3.0"
+requests = ">=2.32.3,<2.33"
+aiohttp = ">=3.9.5,<3.10"
+xrootd = ">=5.7.0,<5.8"
+jupyterlab = ">=4.2.3,<4.3"
+jupytext = ">=1.16.3,<1.17"
