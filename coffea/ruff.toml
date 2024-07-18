@@ -1,0 +1,5 @@
+extend-include = ["*.ipynb"]
+
+[lint]
+# Allow for imports not at top
+ignore = ["E402"]
