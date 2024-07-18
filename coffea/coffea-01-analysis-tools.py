@@ -66,6 +66,7 @@ def filter_name(name):
     """
     return name in (
         "EventInfoAuxDyn.mcEventWeights",
+        "EventInfoAuxDyn.mcChannelNumber",
         #
         "AnalysisElectronsAuxDyn.pt",
         "AnalysisElectronsAuxDyn.eta",
@@ -144,6 +145,9 @@ file_uri = f"{xcache_caching_server}{open_data_storage}{file_path}"
 # # ! xrdcp --allow-http "{open_data_storage}{file_path}" data/Z_jets.root
 
 # %%
+file_uri
+
+# %%
 _local_path = Path().cwd() / "data" / "Z_jets.root"
 if _local_path.exists():
     file_name = _local_path
@@ -219,6 +223,7 @@ for cut, n_events in cut_results.items():
 # Let's build a callable function that books a few results, per dataset:
 #  - the sum of weights for the events processed, to use for later luminosity-normalizing the yields;
 #  - a histogram of the dilepton invariant mass, with category axes for various selection regions of interest
+#
 # And, additionally, we'll switch to delayed mode and compute the results with an explicit call through dask's interface
 #
 
@@ -275,7 +280,10 @@ def results_taskgraph(events):
         if region.startswith("ee"):
             leptons = events.Electrons[good_event]
         elif region.startswith("mm"):
-            leptons = events.Muons[good_event]
+            # Hack for the time being given PHYSLITESchema needs fixing
+            _muons = events.Muons[good_event]
+            _muons["m"] = ak.zeros_like(_muons.pt)
+            leptons = _muons
         lep1 = leptons[:, 0]
         lep2 = leptons[:, 1]
         mass = (lep1 + lep2).mass
@@ -295,6 +303,15 @@ def results_taskgraph(events):
 
     return out
 
+
+# %%
+# Need to fix the metadata above so that events.metadata["dataset"] works
+
+# %%
+print(events.fields)
+# events.EventInfo.fields
+
+events.EventInfo.mcChannelNumber[0]
 
 # %%
 out = results_taskgraph(distributed_events)
