@@ -151,9 +151,6 @@ file_uri = f"{xcache_caching_server}{open_data_storage}{file_path}"
 # # ! xrdcp --allow-http "{open_data_storage}{file_path}" data/Z_jets.root
 
 # %%
-file_uri
-
-# %%
 _local_path = Path().cwd() / "data" / "Z_jets.root"
 if _local_path.exists():
     file_name = _local_path
