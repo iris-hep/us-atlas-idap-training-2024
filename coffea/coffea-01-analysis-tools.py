@@ -139,27 +139,20 @@ for _field in events.fields:
 # Below we create a packed selection with some typical selections for a $Z$+jets study, to be used later to form same-sign and opposite-sign $ee$ and $\mu\mu$ event categories/regions.
 
 # %% [markdown]
-# We'll use [ATLAS open data electroweak boson simulation](https://opendata.cern.ch/record/80010) for this ( DOI:[10.7483/OPENDATA.ATLAS.K5SU.X65Y](http://doi.org/10.7483/OPENDATA.ATLAS.K5SU.X65Y))
+# We'll use [ATLAS open data electroweak boson simulation](https://opendata.cern.ch/record/80010) for this ( DOI:[10.7483/OPENDATA.ATLAS.K5SU.X65Y](http://doi.org/10.7483/OPENDATA.ATLAS.K5SU.X65Y)). Specifically `mc20_13TeV_MC_Sh_2211_Zee_maxHTpTV2_CVetoBVeto` and `mc20_13TeV_MC_Sh_2211_Zmumu_maxHTpTV2_CVetoBVeto` samples.
 
 # %%
-file_path = "DAOD_PHYSLITE.37621317._000001.pool.root.1"
+Zee_file_name = "DAOD_PHYSLITE.37621317._000001.pool.root.1"
+Zmumu_file_name = "DAOD_PHYSLITE.37621409._000001.pool.root.1"
 
-file_uri = f"{xcache_caching_server}{open_data_storage}{file_path}"
-
-# %%
-# # ! mkdir -p data
-# # ! xrdcp --allow-http "{open_data_storage}{file_path}" data/Z_jets.root
-
-# %%
-_local_path = Path().cwd() / "data" / "Z_jets.root"
-if _local_path.exists():
-    file_name = _local_path
-else:
-    file_name = file_uri
+files_dict = {
+    f"{xcache_caching_server}{open_data_storage}{Zee_file_name}": "CollectionTree",
+    f"{xcache_caching_server}{open_data_storage}{Zmumu_file_name}": "CollectionTree",
+}
 
 # %%
 events = NanoEventsFactory.from_root(
-    {file_name: "CollectionTree"},
+    files_dict,
     schemaclass=PHYSLITESchema,
     uproot_options=dict(filter_name=filter_name),
     delayed=True,
@@ -229,7 +222,7 @@ for cut, n_events in cut_results.items():
 
 # %%
 distributed_events = NanoEventsFactory.from_root(
-    {file_name: "CollectionTree"},
+    files_dict,
     schemaclass=PHYSLITESchema,
     uproot_options=dict(filter_name=filter_name),
     delayed=True,
@@ -241,6 +234,26 @@ distributed_events
 
 # %%
 def results_taskgraph(events):
+    # need to define these to be delayed as already evaluated eagerly
+    selection = PackedSelection()
+
+    selection.add("two_electrons", ak.num(events.Electrons, axis=1) == 2)
+    selection.add(
+        "electrons_opposite_sign", ak.sum(events.Electrons.charge, axis=1) == 0
+    )
+    selection.add("no_electrons", ak.num(events.Electrons, axis=1) == 0)
+
+    selection.add("two_muons", ak.num(events.Muons, axis=1) == 2)
+    selection.add("muons_opposite_sign", ak.sum(events.Muons.charge, axis=1) == 0)
+    selection.add("no_muons", ak.num(events.Muons, axis=1) == 0)
+
+    selection.add(
+        "lead_pt_20",
+        # assuming one of `two_electrons` or `two_muons` is imposed, this implies at least one is above threshold
+        ak.any(events.Electrons.pt >= 20.0, axis=1)
+        | ak.any(events.Muons.pt >= 20.0, axis=1),
+    )
+
     regions = {
         "ee": {
             "two_electrons": True,
