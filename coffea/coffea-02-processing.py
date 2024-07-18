@@ -129,9 +129,6 @@ fig.savefig(plot_dir / "dimuon_charge.png")
 # %% [markdown]
 # # Filesets
 # We'll need to construct a fileset to run over
-#
-# ## Users without access
-# Uncomment the `eospublic` files in the following dictionary and comment out the `xcache` files, such that you still have one file per dataset (`DoubleMuon` and `ZZ to 4mu`), these should be reachable from anywhere
 
 # %%
 mumu_simulation_filename = f"{xcache_caching_server}root://eospublic.cern.ch//eos/root-eos/cms_opendata_2012_nanoaod/ZZTo4mu.root"
@@ -158,7 +155,7 @@ initial_fileset = {
 
 # %% [markdown]
 # # Preprocessing
-# There are dataset discovery tools inside of coffea to help construct such datasets. Those will not be demonstrated here. For now, we'll take the above `initial_fileset` and preprocess it.
+# There are dataset discovery tools inside of `coffea` to help construct such datasets. Those will not be demonstrated here. For now, we'll take the above `initial_fileset` and preprocess it.
 
 # %%
 from coffea.dataset_tools import apply_to_fileset, max_chunks, max_files, preprocess
@@ -179,14 +176,14 @@ preprocessed_available, preprocessed_total = preprocess(
 
 # %% [markdown]
 # # Preprocessed fileset
-# Lets have a look at the contents of the preprocessed_available part of the fileset
+# Lets have a look at the contents of the `preprocessed_available` part of the fileset
 
 # %%
 preprocessed_available
 
 # %% [markdown]
-# # Saving a preprocessed fileset
-# We can use the gzip, pickle, and json modules/libraries to both save and reload datasets directly. We'll do this short example below
+# ## Saving a preprocessed fileset
+# We can use the `gzip`, `pickle`, and `json` modules/libraries to both save and reload datasets directly. We'll do this short example below
 
 # %%
 from pathlib import Path
@@ -217,7 +214,7 @@ with gzip.open(fileset_dir / f"{output_file}_all.json.gz", "rt") as file:
 
 # %% [markdown]
 # # Slicing chunks and files
-# Given this preprocessed fileset, we can test our processor on just a few chunks of a handful of files. To do this, we use the max_files and max_chunks functions from the dataset tools
+# Given this preprocessed fileset, we can test our processor on just a few chunks of a handful of files. To do this, we use the `max_files` and `max_chunks` functions from the dataset tools
 
 # %%
 test_preprocessed_files = max_files(preprocessed_available, 1)
@@ -266,7 +263,7 @@ out, rep = dask.compute(full_task_graph, rep)
 out
 
 # %% [markdown]
-# Hopefully this ran faster than the previous cell, but that may depend on how many cores are available on the machine you are running this notebook. At least the output will be prettier now:
+# Hopefully this ran faster than the previous cell, but that may depend on how many cores are available on the machine you are running this notebook.
 
 # %%
 plot_dir = Path().cwd() / "plots"
