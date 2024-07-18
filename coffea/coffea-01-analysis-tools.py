@@ -139,27 +139,62 @@ for _field in events.fields:
 # Below we create a packed selection with some typical selections for a $Z$+jets study, to be used later to form same-sign and opposite-sign $ee$ and $\mu\mu$ event categories/regions.
 
 # %% [markdown]
-# We'll use [ATLAS open data electroweak boson simulation](https://opendata.cern.ch/record/80010) for this ( DOI:[10.7483/OPENDATA.ATLAS.K5SU.X65Y](http://doi.org/10.7483/OPENDATA.ATLAS.K5SU.X65Y))
+# We'll use [ATLAS open data electroweak boson simulation](https://opendata.cern.ch/record/80010) for this ( DOI:[10.7483/OPENDATA.ATLAS.K5SU.X65Y](http://doi.org/10.7483/OPENDATA.ATLAS.K5SU.X65Y)). Specifically `mc20_13TeV_MC_Sh_2211_Zee_maxHTpTV2_CVetoBVeto` and `mc20_13TeV_MC_Sh_2211_Zmumu_maxHTpTV2_CVetoBVeto` samples.
 
 # %%
-file_path = "DAOD_PHYSLITE.37621317._000001.pool.root.1"
+fileset = {
+    "Zee": {
+        "files": {
+            f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.37621317._000001.pool.root.1": "CollectionTree",
+        },
+    },
+    "Zmumu": {
+        "files": {
+            f"{xcache_caching_server}{open_data_storage}DAOD_PHYSLITE.37621409._000001.pool.root.1": "CollectionTree",
+        },
+    },
+}
 
-file_uri = f"{xcache_caching_server}{open_data_storage}{file_path}"
+# %%
+from coffea import dataset_tools
+
+samples, _ = dataset_tools.preprocess(fileset)
+
+# %%
+samples
+
+# %%
+fileset["Zee"]
+
+# %%
+Zee_file_name = "DAOD_PHYSLITE.37621317._000001.pool.root.1"
+Zmumu_file_name = "DAOD_PHYSLITE.37621409._000001.pool.root.1"
+
+files_dict = {
+    f"{xcache_caching_server}{open_data_storage}{Zee_file_name}": "CollectionTree",
+    f"{xcache_caching_server}{open_data_storage}{Zmumu_file_name}": "CollectionTree",
+}
+
+# file_uri = f"{xcache_caching_server}{open_data_storage}{file_path}"
+
+# %%
+files_dict.keys()
 
 # %%
 # # ! mkdir -p data
 # # ! xrdcp --allow-http "{open_data_storage}{file_path}" data/Z_jets.root
 
 # %%
-_local_path = Path().cwd() / "data" / "Z_jets.root"
-if _local_path.exists():
-    file_name = _local_path
-else:
-    file_name = file_uri
+# _local_path = Path().cwd() / "data" / "Z_jets.root"
+# if _local_path.exists():
+#     file_name = _local_path
+# else:
+#     file_name = file_uri
 
 # %%
 events = NanoEventsFactory.from_root(
-    {file_name: "CollectionTree"},
+    # {file_name: "CollectionTree"},
+    files_dict,
     schemaclass=PHYSLITESchema,
     uproot_options=dict(filter_name=filter_name),
     delayed=True,
@@ -229,7 +264,8 @@ for cut, n_events in cut_results.items():
 
 # %%
 distributed_events = NanoEventsFactory.from_root(
-    {file_name: "CollectionTree"},
+    # {file_name: "CollectionTree"},
+    files_dict,
     schemaclass=PHYSLITESchema,
     uproot_options=dict(filter_name=filter_name),
     delayed=True,
@@ -288,10 +324,7 @@ def results_taskgraph(events):
         lep2 = leptons[:, 1]
         mass = (lep1 + lep2).mass
 
-        mass_hist.fill(
-            region=region,
-            mass=mass,
-        )
+        mass_hist.fill(region=region, mass=mass)
 
     out = {
         "sumw": ak.sum(events.EventInfo.mcEventWeights, axis=0),
@@ -300,6 +333,9 @@ def results_taskgraph(events):
 
     return out
 
+
+# %%
+events
 
 # %% [markdown]
 # So when we reun we get a `dict` of task graphs
