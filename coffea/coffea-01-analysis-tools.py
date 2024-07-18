@@ -6,10 +6,19 @@
 #
 # We'll just look at single files for the time being to keep things simple.
 
+# %% [markdown]
+# ## Rapid review of what we've already seen
+
 # %%
+from pathlib import Path
+
+from matplotlib import pyplot as plt
 import awkward as ak
 import dask
+from hist.dask import Hist
 from coffea.nanoevents import NanoEventsFactory, PHYSLITESchema
+from coffea.analysis_tools import PackedSelection
+import mplhep
 
 PHYSLITESchema.warn_missing_crossrefs = False
 
@@ -40,8 +49,6 @@ file_uri = f"{xcache_caching_server}{open_data_storage}{file_path}"
 # # ! xrdcp --allow-http "{open_data_storage}{file_path}" data/example.root
 
 # %%
-from pathlib import Path
-
 _local_path = Path().cwd() / "data" / "example.root"
 if _local_path.exists():
     file_name = _local_path
@@ -65,6 +72,7 @@ def filter_name(name):
     """
     return name in (
         "EventInfoAuxDyn.mcEventWeights",
+        "EventInfoAuxDyn.mcChannelNumber",
         #
         "AnalysisElectronsAuxDyn.pt",
         "AnalysisElectronsAuxDyn.eta",
@@ -161,8 +169,6 @@ events = NanoEventsFactory.from_root(
 events = events.compute()
 
 # %%
-from coffea.analysis_tools import PackedSelection
-
 selection = PackedSelection()
 
 selection.add("twoElectrons", ak.num(events.Electrons, axis=1) == 2)
@@ -211,3 +217,134 @@ cut_results, *_ = dask.compute(results)
 
 for cut, n_events in cut_results.items():
     print(f"Events passing all cuts, ignoring '{cut}': {n_events}")
+
+# %% [markdown]
+# ## Bringing it together
+#
+# Let's build a callable function that books a few results, per dataset:
+# * the sum of weights for the events processed (to use for later luminosity-normalizing the yields)
+# * a histogram of the dilepton invariant mass, with category axes for various selection regions of interest
+#
+# And, additionally, we'll switch to delayed mode and compute the results with an explicit call through `dask`'s interface
+
+# %%
+distributed_events = NanoEventsFactory.from_root(
+    {file_name: "CollectionTree"},
+    schemaclass=PHYSLITESchema,
+    uproot_options=dict(filter_name=filter_name),
+    delayed=True,
+).events()
+
+# %%
+distributed_events
+
+
+# %%
+def results_taskgraph(events):
+    regions = {
+        "ee": {
+            "twoElectrons": True,
+            "noMuons": True,
+            "leadPt20": True,
+            "eleOppSign": True,
+        },
+        "eeSS": {
+            "twoElectrons": True,
+            "noMuons": True,
+            "leadPt20": True,
+            "eleOppSign": False,
+        },
+        "mm": {
+            "twoMuons": True,
+            "noElectrons": True,
+            "leadPt20": True,
+            "muOppSign": True,
+        },
+        "mmSS": {
+            "twoMuons": True,
+            "noElectrons": True,
+            "leadPt20": True,
+            "muOppSign": False,
+        },
+    }
+
+    mass_hist = (
+        Hist.new.StrCat(regions.keys(), name="region")
+        .Reg(60, 60, 120, name="mass", label="$m_{ll}$ [GeV]")
+        .Weight()
+    )
+
+    for region, cuts in regions.items():
+        good_event = selection.require(**cuts)
+
+        if region.startswith("ee"):
+            leptons = events.Electrons[good_event]
+        elif region.startswith("mm"):
+            # Hack for the time being given PHYSLITESchema needs fixing
+            _muons = events.Muons[good_event]
+            _muons["m"] = ak.zeros_like(_muons.pt)
+            leptons = _muons
+        lep1 = leptons[:, 0]
+        lep2 = leptons[:, 1]
+        mass = (lep1 + lep2).mass
+
+        mass_hist.fill(
+            region=region,
+            mass=mass,
+        )
+
+    out = {
+        "sumw": ak.sum(events.EventInfo.mcEventWeights, axis=0),
+        "mass": mass_hist,
+    }
+
+    return out
+
+
+# %% [markdown]
+# So when we reun we get a `dict` of task graphs
+
+# %%
+out_task_graph = results_taskgraph(distributed_events)
+
+out_task_graph
+
+# %% [markdown]
+# So we used `dask` to now evaluate the graph with `.compute`
+
+# %%
+output, *_ = dask.compute(out_task_graph)
+
+output
+
+# %% [markdown]
+# Thanks to `hist` we can slo see nice Jupyter [`reprs`](https://docs.python.org/3/library/functions.html#repr) of the objects
+
+# %%
+output["mass"]
+
+# %%
+output["mass"][sum, :]
+
+# %%
+plot_dir = Path().cwd() / "plots"
+plot_dir.mkdir(exist_ok=True)
+
+# %%
+mplhep.style.use(mplhep.style.ATLAS)
+
+fig, ax = plt.subplots()
+
+output["mass"][sum, :].plot1d(ax=ax, label="$ll$ mass")
+ax.legend()
+
+fig.savefig(plot_dir / "ll_mass.png")
+
+# %%
+fig, ax = plt.subplots()
+
+output["mass"]["ee", :].plot1d(ax=ax, label=r"$ee$")
+output["mass"]["eeSS", :].plot1d(ax=ax, label=r"$ee$ same sign")
+ax.legend()
+
+fig.savefig(plot_dir / "ee_mass.png")
