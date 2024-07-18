@@ -305,6 +305,21 @@ def results_taskgraph(events):
 
 
 # %%
+ak.sum(events.EventInfo.mcEventWeights, axis=0)
+
+# %%
+"metadata": {
+    "process": "Z",
+    "xsec": 2221.2,
+    "genFiltEff": 0.8460721,
+    "kFactor": 1.45,
+    "sumOfWeights": 1195987492151594.8,
+},
+
+# %%
+events.EventInfo.mcChannelNumber[0]
+
+# %%
 # Need to fix the metadata above so that events.metadata["dataset"] works
 
 # %%
