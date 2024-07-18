@@ -9,7 +9,7 @@ To open the notebook `.py` files as `.ipynb` files in Jupyter Lab, right click o
 
 ## Local environment with `pixi`
 
-If you would like to run the module notebooks standalone, you can use the provided [`pixi`](https://pixi.sh/) environment.
+If you would like to run parts of the module notebooks locally in a standalone environment, you can use the provided [`pixi`](https://pixi.sh/) environment.
 To do so:
 * [Install `pixi`](https://pixi.sh/latest/#installation)
 * Run `pixi run example`
