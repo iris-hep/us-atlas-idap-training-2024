@@ -20,12 +20,12 @@
 
 ## Instructor team
 
-* Kyungeon Choi, University of Texas at Austin
-* Matthew Feickert, University of Wisconsin-Madison
-* Lindsey Gray, Fermilab
-* Alexander Held, University of Wisconsin-Madison
-* Vangelis Kourlitis, Technical University of Munich
-* Ana Peixoto, University of Washington
-* Jim Pivarski, Princeton University
-* Oksana Shadura, University of Nebraska - Lincoln
-* Gordon Watts, University of Washington
+* [KyungEon Choi](https://github.com/kyungeonchoi), University of Texas at Austin
+* [Matthew Feickert](https://github.com/matthewfeickert), University of Wisconsin-Madison
+* [Lindsey Gray](https://github.com/lgray), Fermilab
+* [Alexander Held](https://github.com/alexander-held), University of Wisconsin-Madison
+* [Vangelis Kourlitis](https://github.com/ekourlit), Technical University of Munich
+* [Ana Peixoto](https://github.com/anapeixotohep), University of Washington
+* [Jim Pivarski](https://github.com/jpivarski), Princeton University
+* [Oksana Shadura](https://github.com/oshadura), University of Nebraska - Lincoln
+* [Gordon Watts](https://github.com/gordonwatts), University of Washington
