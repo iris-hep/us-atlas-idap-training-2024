@@ -124,7 +124,7 @@ out["mass"].plot1d(ax=ax)
 ax.set_xscale("log")
 ax.legend(title="Dimuon charge")
 
-fig.savefig("dimuon_charge.png")
+fig.savefig(plot_dir / "dimuon_charge.png")
 
 # %% [markdown]
 # # Filesets
