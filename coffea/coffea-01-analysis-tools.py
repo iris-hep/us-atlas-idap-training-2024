@@ -171,18 +171,18 @@ events = events.compute()
 # %%
 selection = PackedSelection()
 
-selection.add("twoElectrons", ak.num(events.Electrons, axis=1) == 2)
-selection.add("eleOppSign", ak.sum(events.Electrons.charge, axis=1) == 0)
-selection.add("noElectrons", ak.num(events.Electrons, axis=1) == 0)
+selection.add("two_electrons", ak.num(events.Electrons, axis=1) == 2)
+selection.add("electrons_opposite_sign", ak.sum(events.Electrons.charge, axis=1) == 0)
+selection.add("no_electrons", ak.num(events.Electrons, axis=1) == 0)
 
-selection.add("twoMuons", ak.num(events.Muons, axis=1) == 2)
-selection.add("muOppSign", ak.sum(events.Muons.charge, axis=1) == 0)
-selection.add("noMuons", ak.num(events.Muons, axis=1) == 0)
+selection.add("two_muons", ak.num(events.Muons, axis=1) == 2)
+selection.add("muons_opposite_sign", ak.sum(events.Muons.charge, axis=1) == 0)
+selection.add("no_muons", ak.num(events.Muons, axis=1) == 0)
 
 
 selection.add(
-    "leadPt20",
-    # assuming one of `twoElectrons` or `twoMuons` is imposed, this implies at least one is above threshold
+    "lead_pt_20",
+    # assuming one of `two_electrons` or `two_muons` is imposed, this implies at least one is above threshold
     ak.any(events.Electrons.pt >= 20.0, axis=1)
     | ak.any(events.Muons.pt >= 20.0, axis=1),
 )
@@ -193,19 +193,19 @@ print(selection.names)
 # To evaluate a boolean mask (e.g. to filter events) we can use the `selection.all(*names)` function, which will compute the AND of all listed boolean selections
 
 # %%
-selection.all("twoElectrons", "noMuons", "leadPt20")
+selection.all("two_electrons", "no_muons", "lead_pt_20")
 
 # %% [markdown]
 # We can also be more specific and require that a specific set of selections have a given value (with the unspecified ones allowed to be either `True` or `False`) using `selection.require`
 
 # %%
-selection.require(twoElectrons=True, noMuons=True, eleOppSign=False)
+selection.require(two_electrons=True, no_muons=True, electrons_opposite_sign=False)
 
 # %% [markdown]
 # Using the Python syntax for passing an arguments variable, we can easily implement a "N-1" style selection
 
 # %%
-all_cuts = {"twoElectrons", "noMuons", "leadPt20"}
+all_cuts = {"two_electrons", "no_muons", "lead_pt_20"}
 results = {}
 for cut in all_cuts:
     n_events = ak.sum(selection.all(*(all_cuts - {cut})), axis=0)
@@ -243,28 +243,28 @@ distributed_events
 def results_taskgraph(events):
     regions = {
         "ee": {
-            "twoElectrons": True,
-            "noMuons": True,
-            "leadPt20": True,
-            "eleOppSign": True,
+            "two_electrons": True,
+            "no_muons": True,
+            "lead_pt_20": True,
+            "electrons_opposite_sign": True,
         },
-        "eeSS": {
-            "twoElectrons": True,
-            "noMuons": True,
-            "leadPt20": True,
-            "eleOppSign": False,
+        "ee_same_sign": {
+            "two_electrons": True,
+            "no_muons": True,
+            "lead_pt_20": True,
+            "electrons_opposite_sign": False,
         },
         "mm": {
-            "twoMuons": True,
-            "noElectrons": True,
-            "leadPt20": True,
-            "muOppSign": True,
+            "two_muons": True,
+            "no_electrons": True,
+            "lead_pt_20": True,
+            "muons_opposite_sign": True,
         },
-        "mmSS": {
-            "twoMuons": True,
-            "noElectrons": True,
-            "leadPt20": True,
-            "muOppSign": False,
+        "mumu_same_sign": {
+            "two_muons": True,
+            "no_electrons": True,
+            "lead_pt_20": True,
+            "muons_opposite_sign": False,
         },
     }
 
@@ -344,7 +344,7 @@ fig.savefig(plot_dir / "ll_mass.png")
 fig, ax = plt.subplots()
 
 output["mass"]["ee", :].plot1d(ax=ax, label=r"$ee$")
-output["mass"]["eeSS", :].plot1d(ax=ax, label=r"$ee$ same sign")
+output["mass"]["ee_same_sign", :].plot1d(ax=ax, label=r"$ee$ same sign")
 ax.legend()
 
 fig.savefig(plot_dir / "ee_mass.png")
