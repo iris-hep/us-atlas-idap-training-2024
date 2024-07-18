@@ -290,7 +290,7 @@ def results_taskgraph(events):
             "lead_pt_20": True,
             "electrons_opposite_sign": False,
         },
-        "mm": {
+        "mumu": {
             "two_muons": True,
             "no_electrons": True,
             "lead_pt_20": True,
@@ -315,7 +315,7 @@ def results_taskgraph(events):
 
         if region.startswith("ee"):
             leptons = events.Electrons[good_event]
-        elif region.startswith("mm"):
+        elif region.startswith("mumu"):
             # Hack for the time being given PHYSLITESchema needs fixing
             _muons = events.Muons[good_event]
             _muons["m"] = ak.zeros_like(_muons.pt)
