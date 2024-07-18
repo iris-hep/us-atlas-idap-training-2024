@@ -19,9 +19,14 @@
 #  * Calculating the dimuon invariant mass
 
 # %%
+import gzip
+import json
+from pathlib import Path
+
 import awkward as ak
 from coffea import processor
 from coffea.nanoevents.methods import candidate
+from coffea.dataset_tools import apply_to_fileset, max_chunks, max_files, preprocess
 import dask
 from hist.dask import Hist
 
@@ -108,7 +113,6 @@ dask.visualize(task_graph["mass"], optimize_graph=True)
 out, *_ = dask.compute(task_graph)
 
 # %%
-from pathlib import Path
 
 plot_dir = Path().cwd() / "plots"
 plot_dir.mkdir(exist_ok=True)
@@ -158,9 +162,6 @@ initial_fileset = {
 # There are dataset discovery tools inside of `coffea` to help construct such datasets. Those will not be demonstrated here. For now, we'll take the above `initial_fileset` and preprocess it.
 
 # %%
-from coffea.dataset_tools import apply_to_fileset, max_chunks, max_files, preprocess
-
-# %%
 preprocessed_available, preprocessed_total = preprocess(
     initial_fileset,
     step_size=100_000,
@@ -186,15 +187,10 @@ preprocessed_available
 # We can use the `gzip`, `pickle`, and `json` modules/libraries to both save and reload datasets directly. We'll do this short example below
 
 # %%
-from pathlib import Path
-
 fileset_dir = Path().cwd() / "filesets"
 fileset_dir.mkdir(exist_ok=True)
 
 # %%
-import gzip
-import json
-
 output_file = "example_fileset"
 with gzip.open(fileset_dir / f"{output_file}_available.json.gz", "wt") as file:
     json.dump(preprocessed_available, file, indent=2)
