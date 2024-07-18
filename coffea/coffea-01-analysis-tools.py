@@ -7,8 +7,11 @@
 # We'll just look at single files for the time being to keep things simple.
 
 # %%
+from pathlib import Path
+
 import awkward as ak
 import dask
+from hist.dask import Hist
 from coffea.nanoevents import NanoEventsFactory, PHYSLITESchema
 
 PHYSLITESchema.warn_missing_crossrefs = False
@@ -40,8 +43,6 @@ file_uri = f"{xcache_caching_server}{open_data_storage}{file_path}"
 # # ! xrdcp --allow-http "{open_data_storage}{file_path}" data/example.root
 
 # %%
-from pathlib import Path
-
 _local_path = Path().cwd() / "data" / "example.root"
 if _local_path.exists():
     file_name = _local_path
@@ -211,3 +212,96 @@ cut_results, *_ = dask.compute(results)
 
 for cut, n_events in cut_results.items():
     print(f"Events passing all cuts, ignoring '{cut}': {n_events}")
+
+# %% [markdown]
+# ## Bringing it together
+#
+# Let's build a callable function that books a few results, per dataset:
+#  - the sum of weights for the events processed, to use for later luminosity-normalizing the yields;
+#  - a histogram of the dilepton invariant mass, with category axes for various selection regions of interest
+# And, additionally, we'll switch to delayed mode and compute the results with an explicit call through dask's interface
+#
+
+# %%
+distributed_events = NanoEventsFactory.from_root(
+    {file_name: "CollectionTree"},
+    schemaclass=PHYSLITESchema,
+    uproot_options=dict(filter_name=filter_name),
+    delayed=True,
+).events()
+
+# %%
+distributed_events
+
+
+# %%
+def results_taskgraph(events):
+    regions = {
+        "ee": {
+            "twoElectrons": True,
+            "noMuons": True,
+            "leadPt20": True,
+            "eleOppSign": True,
+        },
+        "eeSS": {
+            "twoElectrons": True,
+            "noMuons": True,
+            "leadPt20": True,
+            "eleOppSign": False,
+        },
+        "mm": {
+            "twoMuons": True,
+            "noElectrons": True,
+            "leadPt20": True,
+            "muOppSign": True,
+        },
+        "mmSS": {
+            "twoMuons": True,
+            "noElectrons": True,
+            "leadPt20": True,
+            "muOppSign": False,
+        },
+    }
+
+    mass_hist = (
+        Hist.new.StrCat(regions.keys(), name="region")
+        .Reg(60, 60, 120, name="mass", label="$m_{ll}$ [GeV]")
+        .Weight()
+    )
+
+    for region, cuts in regions.items():
+        good_event = selection.require(**cuts)
+
+        if region.startswith("ee"):
+            leptons = events.Electrons[good_event]
+        elif region.startswith("mm"):
+            leptons = events.Muons[good_event]
+        lep1 = leptons[:, 0]
+        lep2 = leptons[:, 1]
+        mass = (lep1 + lep2).mass
+
+        mass_hist.fill(
+            region=region,
+            mass=mass,
+            # weight=weights.weight()[good_event],
+        )
+
+    out = {
+        events.metadata["dataset"]: {
+            "sumw": ak.sum(events.mcEventWeights, axis=0),
+            "mass": mass_hist,
+        }
+    }
+
+    return out
+
+
+# %%
+out = results_taskgraph(distributed_events)
+
+out
+
+# %%
+c_out, *_ = dask.compute(out)
+
+c_out
