@@ -6,13 +6,19 @@
 #
 # We'll just look at single files for the time being to keep things simple.
 
+# %% [markdown]
+# ## Rapid review of what we've already seen
+
 # %%
 from pathlib import Path
 
+from matplotlib import pyplot as plt
 import awkward as ak
 import dask
 from hist.dask import Hist
 from coffea.nanoevents import NanoEventsFactory, PHYSLITESchema
+from coffea.analysis_tools import PackedSelection
+import mplhep
 
 PHYSLITESchema.warn_missing_crossrefs = False
 
@@ -166,8 +172,6 @@ events = NanoEventsFactory.from_root(
 events = events.compute()
 
 # %%
-from coffea.analysis_tools import PackedSelection
-
 selection = PackedSelection()
 
 selection.add("twoElectrons", ak.num(events.Electrons, axis=1) == 2)
@@ -221,11 +225,10 @@ for cut, n_events in cut_results.items():
 # ## Bringing it together
 #
 # Let's build a callable function that books a few results, per dataset:
-#  - the sum of weights for the events processed, to use for later luminosity-normalizing the yields;
-#  - a histogram of the dilepton invariant mass, with category axes for various selection regions of interest
+# * the sum of weights for the events processed (to use for later luminosity-normalizing the yields)
+# * a histogram of the dilepton invariant mass, with category axes for various selection regions of interest
 #
-# And, additionally, we'll switch to delayed mode and compute the results with an explicit call through dask's interface
-#
+# And, additionally, we'll switch to delayed mode and compute the results with an explicit call through `dask`'s interface
 
 # %%
 distributed_events = NanoEventsFactory.from_root(
@@ -291,49 +294,60 @@ def results_taskgraph(events):
         mass_hist.fill(
             region=region,
             mass=mass,
-            # weight=weights.weight()[good_event],
         )
 
     out = {
-        events.metadata["dataset"]: {
-            "sumw": ak.sum(events.mcEventWeights, axis=0),
-            "mass": mass_hist,
-        }
+        "sumw": ak.sum(events.EventInfo.mcEventWeights, axis=0),
+        "mass": mass_hist,
     }
 
     return out
 
 
-# %%
-ak.sum(events.EventInfo.mcEventWeights, axis=0)
+# %% [markdown]
+# So when we reun we get a `dict` of task graphs
 
 # %%
-"metadata": {
-    "process": "Z",
-    "xsec": 2221.2,
-    "genFiltEff": 0.8460721,
-    "kFactor": 1.45,
-    "sumOfWeights": 1195987492151594.8,
-},
+out_task_graph = results_taskgraph(distributed_events)
+
+out_task_graph
+
+# %% [markdown]
+# So we used `dask` to now evaluate the graph with `.compute`
 
 # %%
-events.EventInfo.mcChannelNumber[0]
+output, *_ = dask.compute(out_task_graph)
+
+output
+
+# %% [markdown]
+# Thanks to `hist` we can slo see nice Jupyter [`reprs`](https://docs.python.org/3/library/functions.html#repr) of the objects
 
 # %%
-# Need to fix the metadata above so that events.metadata["dataset"] works
+output["mass"]
 
 # %%
-print(events.fields)
-# events.EventInfo.fields
-
-events.EventInfo.mcChannelNumber[0]
+output["mass"][sum, :]
 
 # %%
-out = results_taskgraph(distributed_events)
-
-out
+plot_dir = Path().cwd() / "plots"
+plot_dir.mkdir(exist_ok=True)
 
 # %%
-c_out, *_ = dask.compute(out)
+mplhep.style.use(mplhep.style.ATLAS)
 
-c_out
+fig, ax = plt.subplots()
+
+output["mass"][sum, :].plot1d(ax=ax, label="$ll$ mass")
+ax.legend()
+
+fig.savefig(plot_dir / "ll_mass.png")
+
+# %%
+fig, ax = plt.subplots()
+
+output["mass"]["ee", :].plot1d(ax=ax, label=r"$ee$")
+output["mass"]["eeSS", :].plot1d(ax=ax, label=r"$ee$ same sign")
+ax.legend()
+
+fig.savefig(plot_dir / "ee_mass.png")
