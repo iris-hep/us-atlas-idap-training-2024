@@ -1,0 +1,18 @@
+[project]
+name = "stats-tools"
+version = "0.1.0"
+description = "Add a short description here"
+authors = ["Alexander Held <alexander.held@cern.ch>"]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64"]
+
+[tasks]
+example = "jupyter lab"
+
+[dependencies]
+cabinetry = "==0.6.0"
+dask = ">=2024.7.0,<2024.8"
+distributed = ">=2024.7.0,<2024.8"
+hist = ">=2.7.3,<2.8"
+uproot = ">=5.3.10,<5.4"
+jupyterlab = ">=4.2.3,<4.3"
