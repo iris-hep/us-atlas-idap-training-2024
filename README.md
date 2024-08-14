@@ -29,3 +29,9 @@
 * [Jim Pivarski](https://github.com/jpivarski), Princeton University
 * [Oksana Shadura](https://github.com/oshadura), University of Nebraska - Lincoln
 * [Gordon Watts](https://github.com/gordonwatts), University of Washington
+
+
+## [Training event participants](https://indico.cern.ch/event/1376945/page/35009-meeting-participants)
+
+<!-- https://indico.cern.ch/event/1376945/images/46424-us-atlas-iris-hep-group-photo.jpg -->
+[![us-atlas-iris-hep-group-photo-thumbnail](https://github.com/user-attachments/assets/610c7695-52c0-4455-b52b-c3d364a1f710)](https://indico.cern.ch/event/1376945/page/35009-meeting-participants)
